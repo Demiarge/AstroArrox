@@ -152,11 +152,3 @@ docs/
 - **Text placeholders.** In policy pages, FAQ answers and the promo bar, `{{deliveryTime}}`, `{{insideDhakaFee}}`, `{{outsideDhakaFee}}` and `{{freeShippingThreshold}}` are filled in from Settings, so fees are only ever set in one place.
 - **Images.** Uploads are checked by their actual bytes (JPG/PNG/WebP only, max 5 MB) and saved with random names in `uploads/`. To move to S3/R2, rewrite `src/lib/storage.ts` and add the bucket to `images.remotePatterns` in `next.config.ts`.
 
-## Before going live
-
-- Set `SITE_URL` to the real domain, and use a strong super-admin password.
-- Run the app behind a reverse proxy and set `TRUSTED_PROXY_HOPS` (see the table above).
-- Prefer an admin login email that isn't shown publicly on the site (the store contact email in Settings is in the footer).
-- Move images to cloud storage, because most hosts have no persistent disk (see above).
-- Set up automatic database backups.
-- Go through `docs/TODO-confirm.md` with the store owner.
