@@ -1,0 +1,282 @@
+// Money fields are whole Taka.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  imageUrl  String?
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String         @unique
+  sku            String         @unique
+  categoryId     String
+  category       Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  price          Int
+  compareAtPrice Int?
+  stock          Int            @default(0)
+  description    String         @default("") @db.Text
+  /// e.g. [{ "key": "Weight", "value": "9 g" }]
+  specs          Json?
+  isActive       Boolean        @default(true)
+  isFeatured     Boolean        @default(false)
+  isNew          Boolean        @default(false)
+  images         ProductImage[]
+  orderItems     OrderItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive, createdAt])
+}
+
+/// Lowest sortOrder is the main image.
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String  @default("")
+  sortOrder Int     @default(0)
+
+  @@index([productId, sortOrder])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+/// bKash / Nagad go here later.
+enum PaymentMethod {
+  COD
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+model Order {
+  id            String               @id @default(cuid())
+  ref           String               @unique
+  status        OrderStatus          @default(PENDING)
+  paymentMethod PaymentMethod        @default(COD)
+  paymentStatus PaymentStatus        @default(UNPAID)
+  customerName  String
+  phone         String
+  email         String?
+  district      String
+  address       String               @db.Text
+  notes         String?              @db.Text
+  subtotal      Int
+  shippingFee   Int
+  total         Int
+  adminNote     String?              @db.Text
+  /// Ensures a cancel/return only restocks once.
+  stockRestored Boolean              @default(false)
+  /// Null only for orders placed before login was required.
+  userId        String?
+  user          User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  history       OrderStatusHistory[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([status, createdAt])
+  @@index([phone])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Snapshot of the product when the order was placed.
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName String
+  productSku  String
+  unitPrice   Int
+  quantity    Int
+  imageUrl    String?
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?     @db.Text
+  createdAt DateTime    @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+model AdminUser {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  /// Only set by the seed. The app never changes it.
+  isSuperAdmin Boolean     @default(false)
+  /// Null for seeded or CLI-created admins, or if the creator was deleted.
+  createdById  String?
+  createdBy    AdminUser?  @relation("AdminCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  created      AdminUser[] @relation("AdminCreatedBy")
+  sessions     Session[]
+  createdAt    DateTime    @default(now())
+}
+
+model Session {
+  id          String    @id @default(cuid())
+  /// SHA-256 of the cookie token; the raw token isn't stored.
+  tokenHash   String    @unique
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([adminUserId])
+  @@index([expiresAt])
+}
+
+/// Append-only via a DB trigger. No relation to AdminUser so deleted admins keep their logs.
+model AdminLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  adminEmail  String
+  /// See ADMIN_ACTIONS in src/lib/admin-log.ts.
+  action      String
+  targetType  String
+  targetId    String?
+  /// Name at the time, e.g. an email or order ref.
+  targetLabel String?
+  /// Extra facts, e.g. { "changes": { "price": { "from": 6500, "to": 6000 } } }
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([adminId, createdAt])
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  sessions     UserSession[]
+  orders       Order[]
+  createdAt    DateTime      @default(now())
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  /// SHA-256 of the cookie token; the raw token isn't stored.
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Keys like "login:<email>:<ip>" or "track:<ip>".
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead, createdAt])
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  body      String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+enum FaqCategory {
+  ORDERS_PAYMENTS
+  SHIPPING_DELIVERY
+  RETURNS_WARRANTY
+  PRODUCTS_STOCK
+}
+
+model FaqItem {
+  id        String      @id @default(cuid())
+  category  FaqCategory
+  question  String
+  answer    String      @db.Text
+  sortOrder Int         @default(0)
+
+  @@index([category, sortOrder])
+}
+
+/// Single row, id = 1.
+model Setting {
+  id                    Int      @id @default(1)
+  storeName             String   @default("AstroArrox")
+  whatsappNumber        String   @default("01952018404")
+  email                 String   @default("")
+  address               String   @default("")
+  facebookUrl           String   @default("")
+  youtubeUrl            String   @default("")
+  insideDhakaFee        Int      @default(100)
+  outsideDhakaFee       Int      @default(100)
+  freeShippingThreshold Int      @default(1500)
+  deliveryTimeText      String   @default("5–7 business days")
+  promoText             String   @default("Free shipping over 1,500৳")
+  heroImageUrl          String?
+  heroHeadline          String   @default("Technologies of the Future")
+  heroSubtext           String   @default("Drones, robotics, embedded systems and R&D components.")
+  logoLightUrl          String?
+  logoDarkUrl           String?
+  /// Used for the favicon and footer.
+  logoSquareUrl         String?
+  updatedAt             DateTime @updatedAt
+}

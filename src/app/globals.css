@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* next-themes sets the `dark` class on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Components use these semantic tokens, never raw hex values. */
+:root {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --subtle: #f5f6f9;
+  --foreground: #0b0d17;
+  --muted: #5b6072;
+  --line: #e4e6ec;
+  --brand: #2838eb;
+  --brand-hover: #1d2bc4;
+  --brand-text: #2838eb;
+  --brand-soft: #eceefe;
+  --sale: #e11d48;
+  /* Behind white text, so it stays the same in dark mode. */
+  --sale-solid: #e11d48;
+  --warn: #b45309;
+  --success: #15803d;
+  --whatsapp: #15803d;
+  --whatsapp-hover: #166534;
+  --shadow-color: 222 30% 20%;
+}
+
+.dark {
+  --background: #0b0d17;
+  --surface: #12152a;
+  --subtle: #171b33;
+  --foreground: #eef0f7;
+  --muted: #9ba1b8;
+  --line: #262b47;
+  --brand: #2838eb;
+  --brand-hover: #3b4aff;
+  --brand-text: #7d87ff;
+  --brand-soft: #1b2050;
+  --sale: #fb7185;
+  --warn: #fbbf24;
+  --success: #4ade80;
+  --whatsapp: #15803d;
+  --whatsapp-hover: #16a34a;
+  --shadow-color: 230 60% 2%;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-text: var(--brand-text);
+  --color-brand-soft: var(--brand-soft);
+  --color-sale: var(--sale);
+  --color-sale-solid: var(--sale-solid);
+  --color-warn: var(--warn);
+  --color-success: var(--success);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-hover: var(--whatsapp-hover);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, sans-serif;
+
+  --shadow-card: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 2px 8px hsl(var(--shadow-color) / 0.05);
+  --shadow-card-hover: 0 4px 10px hsl(var(--shadow-color) / 0.08), 0 14px 32px hsl(var(--shadow-color) / 0.1);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand-text);
+    outline-offset: 2px;
+  }
+
+  html:has(dialog[open]:modal) {
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  .prose-aa {
+    line-height: 1.7;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+  }
+  .prose-aa > * + * {
+    margin-top: 1em;
+  }
+  .prose-aa h1,
+  .prose-aa h2,
+  .prose-aa h3 {
+    font-weight: 700;
+    line-height: 1.25;
+    margin-top: 1.8em;
+  }
+  .prose-aa h1 {
+    font-size: 1.75rem;
+  }
+  .prose-aa h2 {
+    font-size: 1.375rem;
+  }
+  .prose-aa h3 {
+    font-size: 1.125rem;
+  }
+  .prose-aa > :first-child {
+    margin-top: 0;
+  }
+  .prose-aa h2 + *,
+  .prose-aa h3 + * {
+    margin-top: 0.6em;
+  }
+  .prose-aa p,
+  .prose-aa li {
+    color: color-mix(in oklab, var(--foreground) 85%, var(--muted));
+  }
+  .prose-aa strong {
+    font-weight: 650;
+    color: var(--foreground);
+  }
+  .prose-aa a {
+    color: var(--brand-text);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .prose-aa ul,
+  .prose-aa ol {
+    padding-left: 1.4em;
+  }
+  .prose-aa ul {
+    list-style: disc;
+  }
+  .prose-aa ol {
+    list-style: decimal;
+  }
+  .prose-aa li + li {
+    margin-top: 0.35em;
+  }
+  .prose-aa li::marker {
+    color: var(--brand-text);
+  }
+  .prose-aa blockquote {
+    border-left: 3px solid var(--brand);
+    padding-left: 1em;
+    color: var(--muted);
+  }
+  .prose-aa code {
+    background: var(--subtle);
+    border-radius: 0.375rem;
+    padding: 0.1em 0.35em;
+    font-size: 0.9em;
+  }
+  .prose-aa hr {
+    border-color: var(--line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
